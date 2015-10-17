@@ -1,4 +1,31 @@
 // Code to control a Rick and Morty Portal Gun
+// Written by Brandon Pomeroy, 2015
+
+/*
+******** Required Libraries *************
+* ClickEncoder - https://github.com/0xPIT/encoder
+* Adafruit_GFX - https://github.com/adafruit/Adafruit-GFX-Library
+* Adafruit_LEDBackpack - https://github.com/adafruit/Adafruit-LED-Backpack-Library
+*/
+
+
+/*
+********** Required Hardware *********************
+* Adafruit Pro Trinket 5V 16MHz - http://www.adafruit.com/product/2000
+* LiPoly BackPack - http://www.adafruit.com/product/2124
+* LiPoly Battety 3.7V - http://www.adafruit.com/products/1578
+* Rotary Encoder - http://www.adafruit.com/products/377
+* Metal Knob - http://www.adafruit.com/products/2056
+* Quad Alphanumeric Display (Red 0.54") - http://www.adafruit.com/products/1911
+* Adafruit Audio FX Sound Board - http://www.adafruit.com/products/2210
+* 8 ohm Speaker - http://www.adafruit.com/products/1891
+* 10mm Diffused Green LED (x4) - https://www.adafruit.com/products/844
+* 10mm Plastic Bevel LED Holder (x4) - https://www.adafruit.com/products/2171
+* 150 Ohm Resistor (x4) for LEDs
+* Inductive Charging Set - 5V - https://www.adafruit.com/products/1407
+* 2.1mm Panel Mount Barrel Jack - http://www.adafruit.com/products/610
+* 9VDC Power Supply - http://www.adafruit.com/products/63
+*/
 
 #include <Wire.h>
 #include "Adafruit_LEDBackpack.h"
@@ -11,7 +38,7 @@
 // Set up our LED display
 Adafruit_AlphaNum4 alpha4 = Adafruit_AlphaNum4();
 char displayBuffer[4];
-uint8_t dimensionLetter='A';
+uint8_t dimensionLetter='C';
 
 // Set up the click encoder
 ClickEncoder *encoder;
@@ -48,11 +75,13 @@ void loop() {
   ClickEncoder::Button b = encoder->getButton();
   switch (b) {
     case ClickEncoder::Held:
+      // Holding the button will put your trinket to sleep.
+      // The trinket will wake on the next button press
       alpha4.clear();
-      alpha4.writeDigitAscii(0, 'H');
-      alpha4.writeDigitAscii(1, 'E');
-      alpha4.writeDigitAscii(2, 'L');
-      alpha4.writeDigitAscii(3, 'D');
+      alpha4.writeDigitAscii(0, 'R');
+      alpha4.writeDigitAscii(1, 'I');
+      alpha4.writeDigitAscii(2, 'C');
+      alpha4.writeDigitAscii(3, 'K');
       alpha4.writeDisplay();
       delay(5000);
       alpha4.clear();
@@ -61,10 +90,13 @@ void loop() {
       goToSleep();
     break;
     case ClickEncoder::DoubleClicked:
+      //If you double click the button, it sets the dimension to C137
       dimensionLetter = 'C';
       value = 137;
     break;
     case ClickEncoder::Open:
+      // The dimension will increment from 0-999, then roll over to the next
+      // letter. (A999 -> B000)
       updateDimension();
     break;
   }
@@ -179,6 +211,7 @@ ISR (PCINT1_vect) // handle pin change interrupt for A0 to A5 here // NAV0
    * is low.
    */
   detachInterrupt(0);
+
 }
 
 ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here // NAV1, NAV2
