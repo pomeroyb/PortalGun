@@ -8,30 +8,27 @@
 
 // Set up our LED display
 Adafruit_AlphaNum4 alpha4 = Adafruit_AlphaNum4();
+char displayBuffer[4];
+uint8_t dimensionLetter='A';
 
 // Set up the click encoder
 ClickEncoder *encoder;
 int16_t last, value;
-// Define pins
-#define encoderPinA = A1
-#define encoderPinB = A0
-#define encoderButtonPin = 4
+
+// Comment this line to make the encoder increment in the opposite direction
+#define reverseEncoderWheel
+
+
 
 void timerIsr() {
   encoder->service();
 }
 
 void setup() {
-  //Serial.begin(9600);
-  encoder = new ClickEncoder(A1, A0, A2);
-  //encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin);
-  Timer1.initialize(1000);
-  Timer1.attachInterrupt(timerIsr); 
-  last = -1;
+  encoderSetup();
+  alpha4.begin(0x70);  // pass in the address for the LED display
   
-  alpha4.begin(0x70);  // pass in the address
-  
-  
+  //uncomment this to make the display run through a test at startup
   //displayTest();
 
 }
@@ -39,9 +36,80 @@ void setup() {
 void encoderSetup(){
   
   // set up encoder
+  // unfortunately these Pins are hard coded.
+    encoder = new ClickEncoder(A1, A0, A2, 4);
+    //encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin, stepsPerNotch);
+    encoder->setAccelerationEnabled(true);
   
+    Timer1.initialize(1000);
+    Timer1.attachInterrupt(timerIsr); 
+    last = -1;
+    value = 137;
   
 }
+
+
+void updateDimension(){
+  #ifdef reverseEncoderWheel
+  value -= encoder->getValue();
+  #endif
+  
+  #ifndef reverseEncoderWheel
+  value += encoder->getValue();
+  #endif
+  
+  if (value != last) {
+    if (value > 999){
+      value = 0;
+      if (dimensionLetter == 'Z') {
+        dimensionLetter = 'A';
+      } else {
+        dimensionLetter ++;
+      }
+    } else if ( value < 0 ) {
+      value = 999;
+      if (dimensionLetter == 'A') {
+        dimensionLetter = 'Z';
+      } else {
+        dimensionLetter --;
+      }
+    }
+    last = value;
+  }
+  
+  sprintf(displayBuffer, "%03i", value);
+  alpha4.clear();
+  alpha4.writeDigitAscii(0, dimensionLetter);
+  alpha4.writeDigitAscii(1, displayBuffer[0]);
+  alpha4.writeDigitAscii(2, displayBuffer[1]);
+  alpha4.writeDigitAscii(3, displayBuffer[2]);
+  alpha4.writeDisplay();
+}
+
+void loop() {
+  ClickEncoder::Button b = encoder->getButton();
+  switch (b) {
+    case ClickEncoder::Held:
+      alpha4.clear();
+      alpha4.writeDigitAscii(0, 'H');
+      alpha4.writeDigitAscii(1, 'E');
+      alpha4.writeDigitAscii(2, 'L');
+      alpha4.writeDigitAscii(3, 'D');
+      alpha4.writeDisplay();
+    break;
+    case ClickEncoder::DoubleClicked:
+      dimensionLetter = 'C';
+      value = 137;
+    break;
+    case ClickEncoder::Open:
+      updateDimension();
+    break;
+  }
+}
+
+
+
+
 
 void displayTest() {
   
@@ -74,52 +142,4 @@ void displayTest() {
     alpha4.writeDisplay();
     delay(300);
   }
-}
-
-void loop() {
-  
-  value += encoder->getValue();
-  
-  if (value != last) {
-    last = value;
-    //Serial.print("Encoder Value: ");
-   // Serial.println(value);
-  }
-  
-  ClickEncoder::Button b = encoder->getButton();
-  //if (b != ClickEncoder::Open) {
-   // Serial.print("Button: ");
-    //#define VERBOSECASE(label) case label: Serial.println(#label); break;
-    switch (b) {
-     //VERBOSECASE(ClickEncoder::Pressed);
-      //VERBOSECASE(ClickEncoder::Held)
-      //VERBOSECASE(ClickEncoder::Released)
-      //VERBOSECASE(ClickEncoder::Clicked)
-      case ClickEncoder::Open:
-          alpha4.writeDigitAscii(0, 'O');
-          alpha4.writeDigitAscii(1, 'P');
-          alpha4.writeDigitAscii(2, 'E');
-          alpha4.writeDigitAscii(3, 'N');
-          alpha4.writeDisplay();
-      break;
-      case ClickEncoder::Held:
-          alpha4.writeDigitAscii(0, 'H');
-          alpha4.writeDigitAscii(1, 'E');
-          alpha4.writeDigitAscii(2, 'L');
-          alpha4.writeDigitAscii(3, 'D');
-          alpha4.writeDisplay();
-      break;
-      case ClickEncoder::DoubleClicked:
-          alpha4.writeDigitAscii(0, 'c');
-          alpha4.writeDigitAscii(1, 'c');
-          alpha4.writeDigitAscii(2, 'c');
-          alpha4.writeDigitAscii(3, 'c');
-          alpha4.writeDisplay();
-          //Serial.println("ClickEncoder::DoubleClicked");
-          encoder->setAccelerationEnabled(!encoder->getAccelerationEnabled());
-         // Serial.print("  Acceleration is ");
-          //Serial.println((encoder->getAccelerationEnabled()) ? "enabled" : "disabled");
-        break;
-    }
-  //}    
 }
