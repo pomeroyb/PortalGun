@@ -61,6 +61,9 @@ const int msDelay = 500;
 #define frontRightPin        3
 #define frontCenterPin       5
 #define frontLeftPin         6
+#define maximumBright        255
+#define mediumBright         127
+int topBulbBrightness = 255;
 
 // Set up what we need to sleep/wake the Trinket
 // Define the pins you'll use for interrupts - CHANGE THESE to match the input pins
@@ -107,7 +110,8 @@ void loop() {
     digitalWrite(frontCenterPin, HIGH);
     digitalWrite(topBulbPin, HIGH);
     justWokeUp = false;
-  }
+  }  
+
   
   ClickEncoder::Button b = encoder->getButton();
   switch (b) {
@@ -264,7 +268,7 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here // NAV1, NAV2
 {
   // Check it was NAV1 or NAV2 and nothing else
 }
-
+  
 
 /*
 ============== Testing Methods ==================
