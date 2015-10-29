@@ -28,15 +28,6 @@ If you deviate from the following definitions, you will have to change the firmw
 |   GND   |  GND  |
 | Button  |   A2  |
 
-| FX SoundBoard | Trinket Pro Pin |     Sound Effect   |
-|---------------|-----------------|--------------------|
-|    0          |   10            | Portal Shot        |
-|    1          |   11            | Encoder Tick       |
-|    2          |   12            | Reset Dimension    |
-|    3          |   13            | Dimension Rollover |
-|    4          |    4            |   Power Up         |
-|	 5	        |    8            |  Power Down        |
-
 
 | LED | Trinket Pro Pin |
 |-------------|---------|
