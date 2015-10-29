@@ -48,5 +48,11 @@ If you deviate from the following definitions, you will have to change the firmw
 ## Installing Firmware
 First, [set up the Arduino IDE according to Adafruit](https://learn.adafruit.com/introducing-pro-trinket/setting-up-arduino-ide). Connect your Trinket Pro and make sure the bootloader is running, then click upload.
 
+## Button Behavior
+The rotary encoder has a click button, and we can detect a single click, a double click, and a hold.
+- Single Click : Wakes the Trinket Pro from low power mode
+- Double Click : Reset to dimension C137
+- Hold : Turn off LEDs and put the Trinket Pro into a low power mode.
+
 ##Installing SFX
 The main branch doesn't have SFX support. Use the SFX branch to test this out (I found that the speaker inside the case was too quiet to hear.)
