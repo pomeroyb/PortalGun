@@ -49,4 +49,4 @@ If you deviate from the following definitions, you will have to change the firmw
 First, [set up the Arduino IDE according to Adafruit](https://learn.adafruit.com/introducing-pro-trinket/setting-up-arduino-ide). Connect your Trinket Pro and make sure the bootloader is running, then click upload.
 
 ##Installing SFX
-You should be able to just connect the FX board to the computer, and drop the files in the "sfx" folder onto it. The files do follow a naming convention ([see here](https://learn.adafruit.com/adafruit-audio-fx-sound-board/triggering-audio)), so don't change the file names unless you know what you're doing.
+The main branch doesn't have SFX support. Use the SFX branch to test this out (I found that the speaker inside the case was too quiet to hear.)

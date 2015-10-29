@@ -17,8 +17,6 @@
 * Rotary Encoder - http://www.adafruit.com/products/377
 * Metal Knob - http://www.adafruit.com/products/2056
 * Quad Alphanumeric Display (Red 0.54") - http://www.adafruit.com/products/1911
-* Adafruit Audio FX Sound Board - http://www.adafruit.com/products/2210
-* 8 ohm Speaker - http://www.adafruit.com/products/1891
 * 10mm Diffused Green LED (x4) - https://www.adafruit.com/products/844
 * 10mm Plastic Bevel LED Holder (x4) - https://www.adafruit.com/products/2171
 * 150 Ohm Resistor (x4) for LEDs
@@ -43,16 +41,34 @@ uint8_t dimensionLetter='C';
 // Set up the click encoder
 ClickEncoder *encoder;
 int16_t last, value;
+#define encoderPinA          A1
+#define encoderPinB          A0
+#define encoderButtonPin     A2
+
+// Steps per notch can be 1, 4, or 8. If your encoder is counting
+// to fast or too slow, change this!
+#define stepsPerNotch        4
 
 // Comment this line to make the encoder increment in the opposite direction
 #define reverseEncoderWheel
+
+
+// FX Board output delay (ms)
+const int msDelay = 500;
+
+// Set up the Green LEDs
+#define topBulbPin           9
+#define frontRightPin        3
+#define frontCenterPin       5
+#define frontLeftPin         6
 
 // Set up what we need to sleep/wake the Trinket
 // Define the pins you'll use for interrupts - CHANGE THESE to match the input pins
 // you are using in your project
 #define NAV0_PIN A2
-//#define NAV1_PIN 5
-//#define NAV2_PIN 3
+
+//Let us know if our Trinket woke up from sleep
+volatile bool justWokeUp;
 
 
 void timerIsr() {
@@ -61,17 +77,38 @@ void timerIsr() {
 
 void setup() {
   enablePinInterupt(NAV0_PIN);
-//  enablePinInterupt(NAV1_PIN);
-//  enablePinInterupt(NAV2_PIN);
+  
+  //Set up pin modes
+  pinMode(topBulbPin, OUTPUT);
+  pinMode(frontRightPin, OUTPUT);
+  pinMode(frontLeftPin, OUTPUT);
+  pinMode(frontCenterPin, OUTPUT);
+  
+  
+  digitalWrite(frontRightPin, HIGH);
+  digitalWrite(frontLeftPin, HIGH);
+  digitalWrite(frontCenterPin, HIGH);
+  digitalWrite(topBulbPin, HIGH);
+  
   
   encoderSetup();
   alpha4.begin(0x70);  // pass in the address for the LED display
+  
+  justWokeUp = false;
   
   //uncomment this to make the display run through a test at startup
   //displayTest();
 }
 
 void loop() {
+  if (justWokeUp) {
+    digitalWrite(frontRightPin, HIGH);
+    digitalWrite(frontLeftPin, HIGH);
+    digitalWrite(frontCenterPin, HIGH);
+    digitalWrite(topBulbPin, HIGH);
+    justWokeUp = false;
+  }
+  
   ClickEncoder::Button b = encoder->getButton();
   switch (b) {
     case ClickEncoder::Held:
@@ -82,12 +119,21 @@ void loop() {
       alpha4.writeDigitAscii(1, 'I');
       alpha4.writeDigitAscii(2, 'C');
       alpha4.writeDigitAscii(3, 'K');
+      digitalWrite(frontRightPin, LOW);
+      digitalWrite(frontLeftPin, LOW);
+      digitalWrite(frontCenterPin, LOW);
+      digitalWrite(topBulbPin, LOW);
       alpha4.writeDisplay();
       delay(5000);
       alpha4.clear();
       alpha4.writeDisplay();
       delay(5000);
+      justWokeUp = true;
       goToSleep();
+    break;
+    case ClickEncoder::Clicked:
+      // When the encoder wheel is single clicked
+   
     break;
     case ClickEncoder::DoubleClicked:
       //If you double click the button, it sets the dimension to C137
@@ -103,13 +149,9 @@ void loop() {
 }
 
 
-
-
 void encoderSetup(){
-  // set up encoder
-  // unfortunately these Pins are hard coded.
-    encoder = new ClickEncoder(A1, A0, A2, 4);
-    //encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin, stepsPerNotch);
+    // set up encoder
+    encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin, stepsPerNotch);
     encoder->setAccelerationEnabled(true);
   
     Timer1.initialize(1000);
@@ -134,7 +176,7 @@ void updateDimension(){
       if (dimensionLetter == 'Z') {
         dimensionLetter = 'A';
       } else {
-        dimensionLetter ++;
+        dimensionLetter ++;        
       }
     } else if ( value < 0 ) {
       value = 999;
@@ -188,6 +230,9 @@ void goToSleep()
 // I am using the deepest sleep mode from which a
 // watchdog timer interrupt can wake the ATMega328
 
+ 
+
+
 set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode.
 sleep_enable(); // Enable sleep mode.
 sleep_mode(); // Enter sleep mode.
@@ -210,6 +255,7 @@ ISR (PCINT1_vect) // handle pin change interrupt for A0 to A5 here // NAV0
    * continuously firing while the interrupt pin
    * is low.
    */
+  
   detachInterrupt(0);
 
 }
@@ -218,8 +264,6 @@ ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7 here // NAV1, NAV2
 {
   // Check it was NAV1 or NAV2 and nothing else
 }
-
-
 
 
 /*
