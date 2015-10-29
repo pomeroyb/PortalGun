@@ -43,16 +43,41 @@ uint8_t dimensionLetter='C';
 // Set up the click encoder
 ClickEncoder *encoder;
 int16_t last, value;
+#define encoderPinA          A1
+#define encoderPinB          A0
+#define encoderButtonPin     A2
+
+// Steps per notch can be 1, 4, or 8. If your encoder is counting
+// to fast or too slow, change this!
+#define stepsPerNotch        4
 
 // Comment this line to make the encoder increment in the opposite direction
 #define reverseEncoderWheel
+
+//Set up the FX Sound Board outputs
+#define portalShootPin       10
+#define encoderTickPin       11
+#define resetDimensionPin    12
+#define dimensionRolloverPin 13
+#define powerUpPin           4
+#define powerDownPin         8
+
+// FX Board output delay (ms)
+const int msDelay = 500;
+
+// Set up the Green LEDs
+#define topBulbPin           9
+#define frontRightPin        3
+#define frontCenterPin       5
+#define frontLeftPin         6
 
 // Set up what we need to sleep/wake the Trinket
 // Define the pins you'll use for interrupts - CHANGE THESE to match the input pins
 // you are using in your project
 #define NAV0_PIN A2
-//#define NAV1_PIN 5
-//#define NAV2_PIN 3
+
+//Let us know if our Trinket woke up from sleep
+volatile bool justWokeUp;
 
 
 void timerIsr() {
@@ -61,38 +86,103 @@ void timerIsr() {
 
 void setup() {
   enablePinInterupt(NAV0_PIN);
-//  enablePinInterupt(NAV1_PIN);
-//  enablePinInterupt(NAV2_PIN);
+  
+  //Set up pin modes
+  pinMode(portalShootPin, OUTPUT);
+  pinMode(encoderTickPin, OUTPUT);
+  pinMode(resetDimensionPin, OUTPUT);
+  pinMode(dimensionRolloverPin, OUTPUT);
+  pinMode(powerUpPin, OUTPUT);
+  pinMode(powerDownPin, OUTPUT);
+  
+  pinMode(topBulbPin, OUTPUT);
+  pinMode(frontRightPin, OUTPUT);
+  pinMode(frontLeftPin, OUTPUT);
+  pinMode(frontCenterPin, OUTPUT);
+  
+  
+  digitalWrite(frontRightPin, HIGH);
+  digitalWrite(frontLeftPin, HIGH);
+  digitalWrite(frontCenterPin, HIGH);
+  digitalWrite(topBulbPin, HIGH);
+  
+  digitalWrite(portalShootPin, HIGH);
+  digitalWrite(encoderTickPin, HIGH);
+  digitalWrite(resetDimensionPin, HIGH);
+  digitalWrite(dimensionRolloverPin, HIGH);
+  digitalWrite(powerUpPin, HIGH);
+  digitalWrite(powerDownPin, HIGH);
+  
   
   encoderSetup();
   alpha4.begin(0x70);  // pass in the address for the LED display
+  
+  //Play a startup sound
+  digitalWrite(powerUpPin, LOW);
+  delay(msDelay);
+  digitalWrite(powerUpPin, HIGH);
+  justWokeUp = false;
   
   //uncomment this to make the display run through a test at startup
   //displayTest();
 }
 
 void loop() {
+  if (justWokeUp) {
+    //Play a startup sound
+    digitalWrite(powerUpPin, LOW);
+    delay(msDelay);
+    digitalWrite(powerUpPin, HIGH);    
+    digitalWrite(frontRightPin, HIGH);
+    digitalWrite(frontLeftPin, HIGH);
+    digitalWrite(frontCenterPin, HIGH);
+    digitalWrite(topBulbPin, HIGH);
+    justWokeUp = false;
+  }
+  
   ClickEncoder::Button b = encoder->getButton();
   switch (b) {
     case ClickEncoder::Held:
       // Holding the button will put your trinket to sleep.
       // The trinket will wake on the next button press
+      
+      //Play a PowerDown sound
+      digitalWrite(powerDownPin, LOW);
+      delay(msDelay);
+      digitalWrite(powerDownPin, HIGH);
+      
       alpha4.clear();
       alpha4.writeDigitAscii(0, 'R');
       alpha4.writeDigitAscii(1, 'I');
       alpha4.writeDigitAscii(2, 'C');
       alpha4.writeDigitAscii(3, 'K');
+      digitalWrite(frontRightPin, LOW);
+      digitalWrite(frontLeftPin, LOW);
+      digitalWrite(frontCenterPin, LOW);
+      digitalWrite(topBulbPin, LOW);
       alpha4.writeDisplay();
       delay(5000);
       alpha4.clear();
       alpha4.writeDisplay();
       delay(5000);
+      justWokeUp = true;
       goToSleep();
+    break;
+    case ClickEncoder::Clicked:
+      // Play a portal shot sound
+      digitalWrite(portalShootPin, LOW);
+      delay(msDelay);
+      digitalWrite(portalShootPin, HIGH);
     break;
     case ClickEncoder::DoubleClicked:
       //If you double click the button, it sets the dimension to C137
       dimensionLetter = 'C';
       value = 137;
+      // Play a reset dimension sound
+      digitalWrite(resetDimensionPin, LOW);
+      delay(msDelay);
+      digitalWrite(resetDimensionPin, HIGH);
+      
     break;
     case ClickEncoder::Open:
       // The dimension will increment from 0-999, then roll over to the next
@@ -103,13 +193,9 @@ void loop() {
 }
 
 
-
-
 void encoderSetup(){
-  // set up encoder
-  // unfortunately these Pins are hard coded.
-    encoder = new ClickEncoder(A1, A0, A2, 4);
-    //encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin, stepsPerNotch);
+    // set up encoder
+    encoder = new ClickEncoder(encoderPinA, encoderPinB, encoderButtonPin, stepsPerNotch);
     encoder->setAccelerationEnabled(true);
   
     Timer1.initialize(1000);
@@ -133,15 +219,32 @@ void updateDimension(){
       value = 0;
       if (dimensionLetter == 'Z') {
         dimensionLetter = 'A';
+        // Play a dimension rollover sound
+        digitalWrite(dimensionRolloverPin, LOW);
+        delay(msDelay);
+        digitalWrite(dimensionRolloverPin, HIGH);
       } else {
         dimensionLetter ++;
+        // Play an encoder tick sound
+        digitalWrite(encoderTickPin, LOW);
+        delay(msDelay);
+        digitalWrite(encoderTickPin, HIGH);
+        
       }
     } else if ( value < 0 ) {
       value = 999;
       if (dimensionLetter == 'A') {
         dimensionLetter = 'Z';
+        // Play a dimension rollover sound
+        digitalWrite(dimensionRolloverPin, LOW);
+        delay(msDelay);
+        digitalWrite(dimensionRolloverPin, HIGH);
       } else {
         dimensionLetter --;
+        // Play an encoder tick sound
+        digitalWrite(encoderTickPin, LOW);
+        delay(msDelay);
+        digitalWrite(encoderTickPin, HIGH);
       }
     }
     last = value;
@@ -188,6 +291,9 @@ void goToSleep()
 // I am using the deepest sleep mode from which a
 // watchdog timer interrupt can wake the ATMega328
 
+ 
+
+
 set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode.
 sleep_enable(); // Enable sleep mode.
 sleep_mode(); // Enter sleep mode.
@@ -210,6 +316,7 @@ ISR (PCINT1_vect) // handle pin change interrupt for A0 to A5 here // NAV0
    * continuously firing while the interrupt pin
    * is low.
    */
+  
   detachInterrupt(0);
 
 }
